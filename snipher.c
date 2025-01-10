@@ -61,6 +61,24 @@ void log_udp_headers(struct udphdr *udp, FILE *lf) {
    	fprintf(lf , "\t|-Destination Port     : %u\n",ntohs(udp->dest));
 }
 
+void log_payload(uint8_t *buffer, int bufflen, int iphdrlen, uint8_t t_protocol, FILE *lf) {
+    uint8_t t_protocol_header_size = sizeof(struct tcphdr);
+    if (t_protocol == IPPROTO_UDP) {
+        t_protocol_header_size = sizeof(struct udphdr);
+    }
+    uint8_t *packet_data = (buffer + sizeof(struct ethhdr) + iphdrlen + t_protocol_header_size);
+    int remaining_data_size = bufflen - (sizeof(struct ethhdr) + iphdrlen + t_protocol_header_size);
+
+    fprintf(lf, "\nData\n");
+    for (int i = 0; i < remaining_data_size; i++) {
+        if (i != 0 && i % 16 == 0) {
+            fprintf(lf, "\n");
+        }
+        fprintf(lf, " %2.X ", packet_data[i]);
+    }
+    fprintf(lf, "\n");
+}
+
 void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter, FILE *lf) {
     int iphdrlen;
 
@@ -91,6 +109,12 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
         log_udp_headers(udp, lf);
         log_payload = 1;
     }
+
+    if (log_payload == 0) {
+        return;
+    }
+
+
 
     
 }
