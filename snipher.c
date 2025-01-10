@@ -79,6 +79,16 @@ void log_payload(uint8_t *buffer, int bufflen, int iphdrlen, uint8_t t_protocol,
     fprintf(lf, "\n");
 }
 
+int filter_port(uint16_t sport, uint16_t dport, packet_filter_t *packet_filter_t) {
+    if (packet_filter_t->source_port != 0 && packet_filter_t->source_port != sport) {
+        return 0;
+    }
+    if (packet_filter_t->dest_port != 0 && packet_filter_t->dest_port != dport) {
+        return 0
+    }
+    return 1;
+}
+
 void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter, FILE *lf) {
     int iphdrlen;
 
@@ -97,26 +107,24 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
     // TODO: check for ip address filtering
     log_ip_headers(ip, lf);
 
-    uint8_t log_payload = 0;
+    uint8_t log_packet_data = 0;
 
     if ((ip->protocol == IPPROTO_TCP) && (packet_filter->t_protocol == IPPROTO_TCP || packet_filter->t_protocol == 0)) {
         struct tcphdr *tcp = (struct tcphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
         // TODO: check for port filtering
         log_tcp_headers(tcp, lf);
-        log_payload = 1;
+        log_packet_data = 1;
     } else if ((ip->protocol == IPPROTO_UDP) && (packet_filter->t_protocol == IPPROTO_UDP || packet_filter->t_protocol == 0)) {
         struct udphdr *udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
         log_udp_headers(udp, lf);
-        log_payload = 1;
+        log_packet_data = 1;
     }
 
-    if (log_payload == 0) {
+    if (log_packet_data == 0) {
         return;
     }
-
-
-
     
+    log_payload(buffer, bufflen, iphdrlen, ip->protocol, lf);
 }
 
 int main(int argc, char **argv) {
