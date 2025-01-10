@@ -27,10 +27,72 @@ typedef struct {
 
 struct sockaddr_in source_addr, dest_addr;
 
+void log_eth_headers(struct ethhdr *eth, FILE *lf) {
+    fprintf(lf, "\nEthernet Header\n");
+    fprintf(lf, "\t-Source MAC: %.2X-%.2X-%.2X-%.2X-%.2X-%.2X\n", eth->h_source[0], eth->h_source[1], eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5]);
+    fprintf(lf, "\t-Destination MAC: %.2X-%.2X-%.2X-%.2X-%.2X-%.2X\n", eth->h_dest[0], eth->h_dest[1], eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+    fprintf(lf, "\t-Protocol : %d\n", eth->h_proto);
+}
+
+void log_ip_headers(struct iphdr *ip, FILE *lf) {
+    fprintf(lf, "\nIP Header\n");
+    
+    fprintf(lf, "\t-Version : %d\n", (uint32_t)ip->version);
+    fprintf(lf, "\t-Internet Header Length : %d bytes \n", (uint32_t)(ip->ihl * 4));
+    fprintf(lf, "\t-Type of Service : %d\n", (uint32_t)ip->tos);
+    fprintf(lf, "\t-Total Length : %d\n", ntohs(ip->tot_len));
+    fprintf(lf, "\t-Identification : %d\n", (uint32_t)ip->id);
+    fprintf(lf, "\t-Time to Live : %d\n", (uint32_t)ip->ttl);
+    fprintf(lf, "\t-Protocol : %d\n", (uint32_t)ip->protocol);
+    fprintf(lf, "\t-Header Checksum : %d\n", ntohs(ip->check));
+    fprintf(lf, "\t-Source IP : %s\n", inet_ntoa(source_addr.sin_addr));
+    fprintf(lf, "\t-Destination : %s\n", inet_ntoa(dest_addr.sin_addr));
+}
+
+void log_tcp_headers(struct tcphdr *tcp, FILE *lf) {
+    fprintf(lf , "\nTCP Header\n");
+    fprintf(lf , "\t|-Source Port          : %u\n",ntohs(tcp->source));
+   	fprintf(lf , "\t|-Destination Port     : %u\n",ntohs(tcp->dest));
+}
+
+void log_udp_headers(struct udphdr *udp, FILE *lf) {
+    fprintf(lf , "\tUDP Header\n");
+    fprintf(lf , "\t|-Source Port          : %u\n",ntohs(udp->source));
+   	fprintf(lf , "\t|-Destination Port     : %u\n",ntohs(udp->dest));
+}
+
 void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter, FILE *lf) {
+    int iphdrlen;
+
     // process layer 2 header (data link header)
     struct ethhdr *eth = (struct ethhdr*)(buffer);
-    fprintf(lf, "\nEthernet Header\n");
+    log_eth_headers(eth, lf);
+
+    struct iphdr *ip = (struct iphdr*)(buffer + sizeof(struct ethhdr));
+    iphdrlen = ip->ihl * 4;
+
+    memset(&source_addr, 0, sizeof(source_addr));
+    memset(&dest_addr, 0, sizeof(dest_addr));
+    source_addr.sin_addr.s_addr = ip->saddr;
+    dest_addr.sin_addr.s_addr = ip->daddr;
+
+    // TODO: check for ip address filtering
+    log_ip_headers(ip, lf);
+
+    uint8_t log_payload = 0;
+
+    if ((ip->protocol == IPPROTO_TCP) && (packet_filter->t_protocol == IPPROTO_TCP || packet_filter->t_protocol == 0)) {
+        struct tcphdr *tcp = (struct tcphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
+        // TODO: check for port filtering
+        log_tcp_headers(tcp, lf);
+        log_payload = 1;
+    } else if ((ip->protocol == IPPROTO_UDP) && (packet_filter->t_protocol == IPPROTO_UDP || packet_filter->t_protocol == 0)) {
+        struct udphdr *udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
+        log_udp_headers(udp, lf);
+        log_payload = 1;
+    }
+
+    
 }
 
 int main(int argc, char **argv) {
@@ -98,7 +160,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    printf("t_protocol: %d\n", packet_filter.t_protcol);
+    printf("t_protocol: %d\n", packet_filter.t_protocol);
     printf("source_port: %d\n", packet_filter.source_port);
     printf("dest_port: %d\n", packet_filter.dest_port);
     printf("source_ip: %s\n", packet_filter.source_ip);
