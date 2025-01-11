@@ -91,11 +91,11 @@ int filter_port(uint16_t sport, uint16_t dport, packet_filter_t *filter) {
 }
 
 int filter_ip(packet_filter_t *filter) {
-    if (filter->source_ip != NULL && strcmp(filter->source_ip, inet_ntoa(source_addr.sin_addr) != 0)) {
+    if (filter->source_ip != NULL && strcmp(filter->source_ip, inet_ntoa(source_addr.sin_addr)) != 0) {
         return 0;
     }
 
-    if (filter->dest_ip != NULL && strcmp(filter->dest_ip, inet_ntoa(dest_addr.sin_addr) != 0)) {
+    if (filter->dest_ip != NULL && strcmp(filter->dest_ip, inet_ntoa(dest_addr.sin_addr)) != 0) {
         return 0;
     }
 
@@ -224,6 +224,7 @@ int main(int argc, char **argv) {
     printf("dest_port: %s\n", packet_filter.dest_ip);
 
     while (1) {
+        saddr_len=sizeof source_addr;
         bufflen = recvfrom(sockfd, buffer, 65536, 0, &saddr, (socklen_t *)&saddr_len);
         if (bufflen < 0) {
             exit_with_error("Failed to read from socket");
