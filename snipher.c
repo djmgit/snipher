@@ -84,7 +84,7 @@ int filter_port(uint16_t sport, uint16_t dport, packet_filter_t *packet_filter_t
         return 0;
     }
     if (packet_filter_t->dest_port != 0 && packet_filter_t->dest_port != dport) {
-        return 0
+        return 0;
     }
     return 1;
 }
@@ -104,24 +104,32 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
     source_addr.sin_addr.s_addr = ip->saddr;
     dest_addr.sin_addr.s_addr = ip->daddr;
 
+
     // TODO: check for ip address filtering
-    log_ip_headers(ip, lf);
-
-    uint8_t log_packet_data = 0;
-
-    if ((ip->protocol == IPPROTO_TCP) && (packet_filter->t_protocol == IPPROTO_TCP || packet_filter->t_protocol == 0)) {
-        struct tcphdr *tcp = (struct tcphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
-        // TODO: check for port filtering
-        log_tcp_headers(tcp, lf);
-        log_packet_data = 1;
-    } else if ((ip->protocol == IPPROTO_UDP) && (packet_filter->t_protocol == IPPROTO_UDP || packet_filter->t_protocol == 0)) {
-        struct udphdr *udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
-        log_udp_headers(udp, lf);
-        log_packet_data = 1;
+    if (packet_filter->t_protocol != 0 && ip->protocol != packet_filter->t_protocol) {
+        return;
+    }
+    struct tcphdr *tcp  = NULL;
+    struct udphdr *udp = NULL;
+    if (ip->protocol == IPPROTO_TCP) {
+        tcp = (struct tcphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
+        if (filter_port(tcp->source, tcp->dest, packet_filter) == 0) {
+            return;
+        }
     }
 
-    if (log_packet_data == 0) {
-        return;
+    if (ip->protocol == IPPROTO_UDP) {
+        udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
+        if (filter_port(udp->source, udp->dest, packet_filter) == 0) {
+            return;
+        }
+    }
+    log_ip_headers(ip, lf);
+    if (tcp != NULL) {
+        log_tcp_headers(tcp, lf);
+    }
+    if (udp != NULL) {
+        log_udp_headers(udp, lf);
     }
     
     log_payload(buffer, bufflen, iphdrlen, ip->protocol, lf);
