@@ -107,7 +107,6 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
 
     // process layer 2 header (data link header)
     struct ethhdr *eth = (struct ethhdr*)(buffer);
-    log_eth_headers(eth, lf);
 
     struct iphdr *ip = (struct iphdr*)(buffer + sizeof(struct ethhdr));
     iphdrlen = ip->ihl * 4;
@@ -140,6 +139,8 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
             return;
         }
     }
+
+    log_eth_headers(eth, lf);
     log_ip_headers(ip, lf);
     if (tcp != NULL) {
         log_tcp_headers(tcp, lf);
@@ -227,11 +228,9 @@ int main(int argc, char **argv) {
         if (bufflen < 0) {
             exit_with_error("Failed to read from socket");
         }
+        process_packet(buffer, bufflen, &packet_filter, logfile);
         fflush(logfile);
     }
-
-
-
 }
 
 
