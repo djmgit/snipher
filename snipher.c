@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <netinet/in.h>
@@ -79,13 +80,25 @@ void log_payload(uint8_t *buffer, int bufflen, int iphdrlen, uint8_t t_protocol,
     fprintf(lf, "\n");
 }
 
-int filter_port(uint16_t sport, uint16_t dport, packet_filter_t *packet_filter_t) {
-    if (packet_filter_t->source_port != 0 && packet_filter_t->source_port != sport) {
+int filter_port(uint16_t sport, uint16_t dport, packet_filter_t *filter) {
+    if (filter->source_port != 0 && filter->source_port != sport) {
         return 0;
     }
-    if (packet_filter_t->dest_port != 0 && packet_filter_t->dest_port != dport) {
+    if (filter->dest_port != 0 && filter->dest_port != dport) {
         return 0;
     }
+    return 1;
+}
+
+int filter_ip(packet_filter_t *filter) {
+    if (filter->source_ip != NULL && strcmp(filter->source_ip, inet_ntoa(source_addr.sin_addr) != 0)) {
+        return 0;
+    }
+
+    if (filter->dest_ip != NULL && strcmp(filter->dest_ip, inet_ntoa(dest_addr.sin_addr) != 0)) {
+        return 0;
+    }
+
     return 1;
 }
 
@@ -105,7 +118,10 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
     dest_addr.sin_addr.s_addr = ip->daddr;
 
 
-    // TODO: check for ip address filtering
+    if (filter_ip(packet_filter) == 0) {
+        return;
+    }
+
     if (packet_filter->t_protocol != 0 && ip->protocol != packet_filter->t_protocol) {
         return;
     }
