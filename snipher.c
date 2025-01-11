@@ -128,14 +128,14 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
     struct udphdr *udp = NULL;
     if (ip->protocol == IPPROTO_TCP) {
         tcp = (struct tcphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
-        if (filter_port(tcp->source, tcp->dest, packet_filter) == 0) {
+        if (filter_port(ntohs(tcp->source), ntohs(tcp->dest), packet_filter) == 0) {
             return;
         }
     }
 
     if (ip->protocol == IPPROTO_UDP) {
         udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
-        if (filter_port(udp->source, udp->dest, packet_filter) == 0) {
+        if (filter_port(ntohs(udp->source), ntohs(udp->dest), packet_filter) == 0) {
             return;
         }
     }
