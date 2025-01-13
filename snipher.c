@@ -24,9 +24,38 @@ typedef struct {
     char *dest_ip;
     uint16_t source_port;
     uint16_t dest_port;
+    char *source_if_name;
+    char *dest_if_name;
+    uint8_t *source_mac;
+    uint8_t *dest_mac;
 } packet_filter_t;
 
 struct sockaddr_in source_addr, dest_addr;
+
+uint8_t* get_mac(char *if_name) {
+    int fd;
+    struct ifreq ifr;
+    unsigned char *mac;
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+ 
+    ifr.ifr_addr.sa_family = AF_INET;
+    strncpy(ifr.ifr_name , if_name , IFNAMSIZ-1);
+ 
+    ioctl(fd, SIOCGIFHWADDR, &ifr);
+    close(fd);
+     
+    return (uint8_t *)ifr.ifr_hwaddr.sa_data;
+}
+
+uint8_t maccmp(uint8_t *mac1, uint8_t *mac2) {
+    for (uint8_t i = 0; i < 6; i++) {
+        if (mac1[i] != mac2[i]) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
 
 void log_eth_headers(struct ethhdr *eth, FILE *lf) {
     fprintf(lf, "\nEthernet Header\n");
@@ -106,7 +135,7 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
     int iphdrlen;
 
     // process layer 2 header (data link header)
-    struct ethhdr *eth = (struct ethhdr*)(buffer);
+    struct ethhdr *eth = (struct ethhdr*)(buffer); 
 
     struct iphdr *ip = (struct iphdr*)(buffer + sizeof(struct ethhdr));
     iphdrlen = ip->ihl * 4;
@@ -155,12 +184,13 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
 int main(int argc, char **argv) {
     int c;
 
-    packet_filter_t packet_filter = {0, NULL, NULL, 0, 0};
+    packet_filter_t packet_filter = {0, NULL, NULL, NULL, NULL, 0, 0};
 
 
 
     struct sockaddr saddr;
     int sockfd, saddr_len, bufflen;
+    uint8_t *mac = NULL;
 
     uint8_t* buffer = (uint8_t*)malloc(65536);
     memset(buffer, 0, 65536);
@@ -182,14 +212,17 @@ int main(int argc, char **argv) {
             {"dip", required_argument, NULL, 'd'},
             {"sport", required_argument, NULL, 'p'},
             {"dport", required_argument, NULL, 'o'},
+            {"sif", required_argument, NULL, 'i'},
+            {"dif", required_argument, NULL, 'g'},
             {"tcp", no_argument, NULL, 't'},
             {"udp", no_argument, NULL, 'u'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long(argc, argv, "tus:d:p:o:", long_options, NULL);
+        c = getopt_long(argc, argv, "tus:d:p:o:i:", long_options, NULL);
 
-        if (c == -1) {
+        if (c == -1) {char *source_if_name;
+    char *dest_if_name;
             break;
         }
 
@@ -212,6 +245,12 @@ int main(int argc, char **argv) {
             case 'd':
                 packet_filter.dest_ip = optarg;
                 break;
+            case 'i':
+                packet_filter.source_if_name = optarg;
+                break;
+            case 'g':
+                packet_filter.dest_if_name = optarg;
+                break;
             default:
                 abort();
         }
@@ -222,6 +261,15 @@ int main(int argc, char **argv) {
     printf("dest_port: %d\n", packet_filter.dest_port);
     printf("source_ip: %s\n", packet_filter.source_ip);
     printf("dest_port: %s\n", packet_filter.dest_ip);
+    printf("source interface: %s\n", packet_filter.source_if_name);
+    printf("destination interface: %s\n", packet_filter.dest_if_name);
+
+    if (packet_filter.source_if_name != NULL) {
+        packet_filter.source_mac = get_mac(packet_filter.source_if_name);
+    }
+    if (packet_filter.dest_if_name != NULL) {
+        packet_filter.dest_mac = get_mac(packet_filter.dest_if_name);
+    }
 
     while (1) {
         saddr_len=sizeof source_addr;
