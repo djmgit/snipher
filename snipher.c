@@ -7,8 +7,10 @@
 #include <netinet/in.h>
 #include <getopt.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <linux/if_packet.h>
+#include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
 #include <netinet/ip.h>
@@ -271,6 +273,7 @@ int main(int argc, char **argv) {
     printf("dest_port: %s\n", packet_filter.dest_ip);
     printf("source interface: %s\n", packet_filter.source_if_name);
     printf("destination interface: %s\n", packet_filter.dest_if_name);
+    
 
     if (packet_filter.source_if_name != NULL) {
         packet_filter.source_mac = get_mac(packet_filter.source_if_name);
