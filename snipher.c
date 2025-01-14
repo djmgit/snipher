@@ -135,7 +135,15 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
     int iphdrlen;
 
     // process layer 2 header (data link header)
-    struct ethhdr *eth = (struct ethhdr*)(buffer); 
+    struct ethhdr *eth = (struct ethhdr*)(buffer);
+
+    if (packet_filter->source_mac != NULL && maccmp(packet_filter->source_mac, eth->h_source) == 0) {
+        return;
+    }
+
+    if (packet_filter->dest_mac != NULL && maccmp(packet_filter->dest_mac, eth->h_dest) == 0) {
+        return;
+    }
 
     struct iphdr *ip = (struct iphdr*)(buffer + sizeof(struct ethhdr));
     iphdrlen = ip->ihl * 4;
@@ -184,7 +192,7 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
 int main(int argc, char **argv) {
     int c;
 
-    packet_filter_t packet_filter = {0, NULL, NULL, NULL, NULL, 0, 0};
+    packet_filter_t packet_filter = {0, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL};
 
 
 
