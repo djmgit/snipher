@@ -34,10 +34,9 @@ typedef struct {
 
 struct sockaddr_in source_addr, dest_addr;
 
-uint8_t* get_mac(char *if_name) {
+void get_mac(char *if_name, uint8_t **mac) {
     int fd;
     struct ifreq ifr;
-    unsigned char *mac;
     fd = socket(AF_INET, SOCK_DGRAM, 0);
  
     ifr.ifr_addr.sa_family = AF_INET;
@@ -46,7 +45,7 @@ uint8_t* get_mac(char *if_name) {
     ioctl(fd, SIOCGIFHWADDR, &ifr);
     close(fd);
      
-    return (uint8_t *)ifr.ifr_hwaddr.sa_data;
+    *mac = (uint8_t *)ifr.ifr_hwaddr.sa_data;
 }
 
 uint8_t maccmp(uint8_t *mac1, uint8_t *mac2) {
@@ -276,10 +275,11 @@ int main(int argc, char **argv) {
     
 
     if (packet_filter.source_if_name != NULL) {
-        packet_filter.source_mac = get_mac(packet_filter.source_if_name);
+        get_mac(packet_filter.source_if_name, &packet_filter.source_mac);
+        printf("%x : %x\n", packet_filter.source_mac[0], packet_filter.source_mac[1]);
     }
     if (packet_filter.dest_if_name != NULL) {
-        packet_filter.dest_mac = get_mac(packet_filter.dest_if_name);
+        get_mac(packet_filter.dest_if_name, &packet_filter.dest_mac);
     }
 
     while (1) {
