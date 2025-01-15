@@ -203,6 +203,7 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
 
 int main(int argc, char **argv) {
     int c;
+    char log[255];
 
     packet_filter_t packet_filter = {0, NULL, NULL, 0, 0, NULL, NULL};
 
@@ -234,12 +235,13 @@ int main(int argc, char **argv) {
             {"dport", required_argument, NULL, 'o'},
             {"sif", required_argument, NULL, 'i'},
             {"dif", required_argument, NULL, 'g'},
+            {"logfile", required_argument, NULL, 'f'},
             {"tcp", no_argument, NULL, 't'},
             {"udp", no_argument, NULL, 'u'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long(argc, argv, "tus:d:p:o:i:g:", long_options, NULL);
+        c = getopt_long(argc, argv, "tus:d:p:o:i:g:f:", long_options, NULL);
 
         if (c == -1) {
             break;
@@ -270,6 +272,9 @@ int main(int argc, char **argv) {
             case 'g':
                 packet_filter.dest_if_name = optarg;
                 break;
+            case 'f':
+                strcpy(log, optarg);
+                break;
             default:
                 abort();
         }
@@ -282,6 +287,7 @@ int main(int argc, char **argv) {
     printf("dest_port: %s\n", packet_filter.dest_ip);
     printf("source interface: %s\n", packet_filter.source_if_name);
     printf("destination interface: %s\n", packet_filter.dest_if_name);
+    printf("file: %s\n", log);
     
 
     if (packet_filter.source_if_name != NULL) {
