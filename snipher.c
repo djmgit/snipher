@@ -20,6 +20,9 @@
 
 #define exit_with_error(msg) do {perror(msg); exit(EXIT_FAILURE);} while(0)
 
+uint8_t *filter_smac;
+uint8_t *filter_dmac;
+
 typedef struct {
     uint8_t t_protocol;
     char *source_ip;
@@ -28,13 +31,13 @@ typedef struct {
     uint16_t dest_port;
     char *source_if_name;
     char *dest_if_name;
-    uint8_t *source_mac;
-    uint8_t *dest_mac;
+    uint8_t source_mac[6];
+    uint8_t dest_mac[6];
 } packet_filter_t;
 
 struct sockaddr_in source_addr, dest_addr;
 
-void get_mac(char *if_name, uint8_t **mac) {
+void get_mac(char *if_name, packet_filter_t *packet_filter, char *if_type) {
     int fd;
     struct ifreq ifr;
     fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -44,13 +47,21 @@ void get_mac(char *if_name, uint8_t **mac) {
  
     ioctl(fd, SIOCGIFHWADDR, &ifr);
     close(fd);
-     
-    *mac = (uint8_t *)ifr.ifr_hwaddr.sa_data;
+
+    if (strcmp(if_type, "source") == 0) {
+        strcpy(packet_filter->source_mac, (uint8_t *)ifr.ifr_hwaddr.sa_data);
+    } else {
+        strcpy(packet_filter->dest_mac, (uint8_t *)ifr.ifr_hwaddr.sa_data);
+    }
 }
 
 uint8_t maccmp(uint8_t *mac1, uint8_t *mac2) {
+    //printf("comp: \n");
+    //printf("%x:%x:%x:%x:%x:%x\n", mac2[0], mac2[1], mac2[2], mac2[3], mac2[4], mac2[5]);
+    //printf("%x:%x:%x:%x:%x:%x\n", mac1[0], mac1[1], mac1[2], mac1[3], mac1[4], mac1[5]);
     for (uint8_t i = 0; i < 6; i++) {
         if (mac1[i] != mac2[i]) {
+            printf("false\n");
             return 0;
         }
     }
@@ -138,11 +149,11 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
     // process layer 2 header (data link header)
     struct ethhdr *eth = (struct ethhdr*)(buffer);
 
-    if (packet_filter->source_mac != NULL && maccmp(packet_filter->source_mac, eth->h_source) == 0) {
+    if (packet_filter->source_if_name != NULL && maccmp(packet_filter->source_mac, eth->h_source) == 0) {
         return;
     }
 
-    if (packet_filter->dest_mac != NULL && maccmp(packet_filter->dest_mac, eth->h_dest) == 0) {
+    if (packet_filter->dest_if_name != NULL && maccmp(packet_filter->dest_mac, eth->h_dest) == 0) {
         return;
     }
 
@@ -193,7 +204,7 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
 int main(int argc, char **argv) {
     int c;
 
-    packet_filter_t packet_filter = {0, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL};
+    packet_filter_t packet_filter = {0, NULL, NULL, 0, 0, NULL, NULL};
 
 
 
@@ -228,10 +239,9 @@ int main(int argc, char **argv) {
             {0, 0, 0, 0}
         };
 
-        c = getopt_long(argc, argv, "tus:d:p:o:i:", long_options, NULL);
+        c = getopt_long(argc, argv, "tus:d:p:o:i:g:", long_options, NULL);
 
-        if (c == -1) {char *source_if_name;
-    char *dest_if_name;
+        if (c == -1) {
             break;
         }
 
@@ -275,11 +285,10 @@ int main(int argc, char **argv) {
     
 
     if (packet_filter.source_if_name != NULL) {
-        get_mac(packet_filter.source_if_name, &packet_filter.source_mac);
-        printf("%x : %x\n", packet_filter.source_mac[0], packet_filter.source_mac[1]);
+        get_mac(packet_filter.source_if_name, &packet_filter, "source");
     }
     if (packet_filter.dest_if_name != NULL) {
-        get_mac(packet_filter.dest_if_name, &packet_filter.dest_mac);
+        get_mac(packet_filter.dest_if_name, &packet_filter, "dest");
     }
 
     while (1) {
@@ -292,5 +301,3 @@ int main(int argc, char **argv) {
         fflush(logfile);
     }
 }
-
-
