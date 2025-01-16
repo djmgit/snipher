@@ -56,12 +56,8 @@ void get_mac(char *if_name, packet_filter_t *packet_filter, char *if_type) {
 }
 
 uint8_t maccmp(uint8_t *mac1, uint8_t *mac2) {
-    //printf("comp: \n");
-    //printf("%x:%x:%x:%x:%x:%x\n", mac2[0], mac2[1], mac2[2], mac2[3], mac2[4], mac2[5]);
-    //printf("%x:%x:%x:%x:%x:%x\n", mac1[0], mac1[1], mac1[2], mac1[3], mac1[4], mac1[5]);
     for (uint8_t i = 0; i < 6; i++) {
         if (mac1[i] != mac2[i]) {
-            printf("false\n");
             return 0;
         }
     }
@@ -204,6 +200,7 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
 int main(int argc, char **argv) {
     int c;
     char log[255];
+    FILE *logfile = NULL;
 
     packet_filter_t packet_filter = {0, NULL, NULL, 0, 0, NULL, NULL};
 
@@ -215,11 +212,6 @@ int main(int argc, char **argv) {
 
     uint8_t* buffer = (uint8_t*)malloc(65536);
     memset(buffer, 0, 65536);
-
-    FILE *logfile = fopen("snipher_log.txt", "w");
-    if (!logfile) {
-        exit_with_error("Failed to open log file.");
-    }
 
     sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (sockfd < 0) {
@@ -288,6 +280,15 @@ int main(int argc, char **argv) {
     printf("source interface: %s\n", packet_filter.source_if_name);
     printf("destination interface: %s\n", packet_filter.dest_if_name);
     printf("file: %s\n", log);
+
+    if (strlen(log) == 0) {
+        strcpy(log, "snipher_log.txt");
+    }
+
+    logfile = fopen(log, "w");
+    if (!logfile) {
+        exit_with_error("Failed to open log file.");
+    }
     
 
     if (packet_filter.source_if_name != NULL) {
