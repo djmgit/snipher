@@ -69,7 +69,7 @@ void log_eth_headers(struct ethhdr *eth, FILE *lf) {
     fprintf(lf, "\nEthernet Header\n");
     fprintf(lf, "\t-Source MAC: %.2X-%.2X-%.2X-%.2X-%.2X-%.2X\n", eth->h_source[0], eth->h_source[1], eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5]);
     fprintf(lf, "\t-Destination MAC: %.2X-%.2X-%.2X-%.2X-%.2X-%.2X\n", eth->h_dest[0], eth->h_dest[1], eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
-    fprintf(lf, "\t-Protocol : %d\n", eth->h_proto);
+    fprintf(lf, "\t-Protocol : %d\n", ntohs(eth->h_proto));
 }
 
 void log_ip_headers(struct iphdr *ip, FILE *lf) {
@@ -144,6 +144,10 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
 
     // process layer 2 header (data link header)
     struct ethhdr *eth = (struct ethhdr*)(buffer);
+
+    if (ntohs(eth->h_proto) != 0x0800) {
+        return;
+    }
 
     if (packet_filter->source_if_name != NULL && maccmp(packet_filter->source_mac, eth->h_source) == 0) {
         return;
