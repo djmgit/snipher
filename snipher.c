@@ -180,13 +180,13 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
         if (filter_port(ntohs(tcp->source), ntohs(tcp->dest), packet_filter) == 0) {
             return;
         }
-    }
-
-    if (ip->protocol == IPPROTO_UDP) {
+    } else if (ip->protocol == IPPROTO_UDP) {
         udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
         if (filter_port(ntohs(udp->source), ntohs(udp->dest), packet_filter) == 0) {
             return;
         }
+    } else {
+        return;
     }
 
     log_eth_headers(eth, lf);
