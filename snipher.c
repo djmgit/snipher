@@ -88,15 +88,30 @@ void log_ip_headers(struct iphdr *ip, FILE *lf) {
 }
 
 void log_tcp_headers(struct tcphdr *tcp, FILE *lf) {
-    fprintf(lf , "\nTCP Header\n");
-    fprintf(lf , "\t|-Source Port          : %u\n",ntohs(tcp->source));
-   	fprintf(lf , "\t|-Destination Port     : %u\n",ntohs(tcp->dest));
+    fprintf(lf, "\nTCP Header\n");
+    fprintf(lf, "\t-Source Port : %d\n", ntohs(tcp->source));
+    fprintf(lf, "\t-Destination Port : %u\n", ntohs(tcp->dest));
+    fprintf(lf, "\t-Sequence Number : %u\n", ntohl(tcp->seq));
+    fprintf(lf, "\t-Acknowledgement Number : %d\n", ntohl(tcp->ack_seq));
+    fprintf(lf, "\t-Header Length in Bytes : %d\n", (uint32_t)tcp->doff * 4);
+    fprintf(lf, "\t ------- Flags ---------");
+    fprintf(lf, "\t-Urgent Flag : %d\n", (uint32_t)tcp->urg);
+    fprintf(lf, "\t-Acknowledgement Flag : %d\n", (uint32_t)tcp->ack);
+    fprintf(lf, "\t-Push Flag : %d\n", (uint32_t)tcp->psh);
+    fprintf(lf, "\t-Reset Flag : %d\n", (uint32_t)tcp->rst);
+    fprintf(lf, "\t-Synchronise Flag : %d\n", (uint32_t)tcp->syn);
+    fprintf(lf, "\t-Finish Flag : %d\n", (uint32_t)tcp->fin);
+    fprintf(lf, "\t-Window Size : %d\n", ntohs(tcp->window));
+    fprintf(lf, "\t-Checksum : %d\n", ntohs(tcp->check));
+    fprintf(lf, "\t-Urgent pointer : %d\n", tcp->urg_ptr);
 }
 
 void log_udp_headers(struct udphdr *udp, FILE *lf) {
-    fprintf(lf , "\nUDP Header\n");
-    fprintf(lf , "\t|-Source Port          : %u\n",ntohs(udp->source));
-   	fprintf(lf , "\t|-Destination Port     : %u\n",ntohs(udp->dest));
+    fprintf(lf, "\nUDP Header\n");
+    fprintf(lf, "\t-Source Port : %d\n", ntohs(udp->source));
+    fprintf(lf, "\t-Destination Port : %u\n", ntohs(udp->dest));
+    fprintf(lf, "\t-UDP Length : %u\n", ntohs(udp->len));
+    fprintf(lf, "\t-UDP Checksum : %u\n", ntohs(udp->check));
 }
 
 void log_payload(uint8_t *buffer, int bufflen, int iphdrlen, uint8_t t_protocol, FILE *lf, struct tcphdr *tcp) {
