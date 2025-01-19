@@ -94,15 +94,15 @@ void log_tcp_headers(struct tcphdr *tcp, FILE *lf) {
 }
 
 void log_udp_headers(struct udphdr *udp, FILE *lf) {
-    fprintf(lf , "\tUDP Header\n");
+    fprintf(lf , "\nUDP Header\n");
     fprintf(lf , "\t|-Source Port          : %u\n",ntohs(udp->source));
    	fprintf(lf , "\t|-Destination Port     : %u\n",ntohs(udp->dest));
 }
 
-void log_payload(uint8_t *buffer, int bufflen, int iphdrlen, uint8_t t_protocol, FILE *lf) {
-    uint8_t t_protocol_header_size = sizeof(struct tcphdr);
-    if (t_protocol == IPPROTO_UDP) {
-        t_protocol_header_size = sizeof(struct udphdr);
+void log_payload(uint8_t *buffer, int bufflen, int iphdrlen, uint8_t t_protocol, FILE *lf, struct tcphdr *tcp) {
+    uint32_t t_protocol_header_size = sizeof(struct udphdr);
+    if (t_protocol == IPPROTO_TCP) {
+        t_protocol_header_size = (uint32_t)tcp->doff * 4;
     }
     uint8_t *packet_data = (buffer + sizeof(struct ethhdr) + iphdrlen + t_protocol_header_size);
     int remaining_data_size = bufflen - (sizeof(struct ethhdr) + iphdrlen + t_protocol_header_size);
@@ -198,12 +198,12 @@ void process_packet(uint8_t *buffer, int bufflen, packet_filter_t *packet_filter
         log_udp_headers(udp, lf);
     }
     
-    log_payload(buffer, bufflen, iphdrlen, ip->protocol, lf);
+    log_payload(buffer, bufflen, iphdrlen, ip->protocol, lf, tcp);
 }
 
 int main(int argc, char **argv) {
     int c;
-    char log[255];
+    char log[255] = "";
     FILE *logfile = NULL;
 
     packet_filter_t packet_filter = {0, NULL, NULL, 0, 0, NULL, NULL};
