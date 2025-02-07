@@ -17,6 +17,24 @@ gcc -o snipher snipher.c
 
 ## Usage
 
+```
+./snipher
+```
+
+or 
+
+```
+./snipher [OPTIONS]
+```
+
+For example:
+
+Capture packets originating from interface ```enp1s0``` and goting to port 443 of ip 10.5.2.8:
+
+```
+./snipher -f snipher.log --sif enp1s0 --dport  443 --dip 10.5.2.8
+```
+
 You can use mulitple options for filtering while capturing packets with Snipher :
 
 - **--tcp** : Capture only TCP packets
